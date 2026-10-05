@@ -1,0 +1,10 @@
+{
+  "name": "CampusLens - AR-Based Campus Navigation",
+  "description": "Smart AR-enabled indoor & outdoor campus navigation system with Dijkstra routing, real-time path obstruction rerouting, accessibility options, and emergency rescue pathways.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

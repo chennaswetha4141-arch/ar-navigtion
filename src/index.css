@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  h1, h2, h3, .font-display {
+    font-family: 'Syne', 'Plus Jakarta Sans', sans-serif;
+  }
+
+  .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 0.2;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+}
+
+@keyframes ar-float {
+  0%, 100% {
+    transform: translateY(0px) rotateX(20deg);
+  }
+  50% {
+    transform: translateY(-12px) rotateX(20deg);
+  }
+}
+
+@keyframes ar-arrow-guide {
+  0% {
+    transform: translate(-50%, 0) scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translate(-50%, -18px) scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, 0) scale(1);
+    opacity: 0.9;
+  }
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-ar-float {
+  animation: ar-float 3s ease-in-out infinite;
+}
+
+.animate-ar-arrow {
+  animation: ar-arrow-guide 1.6s ease-in-out infinite;
+}
+
+/* Perspective for 3D AR Ground Projection */
+.ar-perspective {
+  perspective: 900px;
+  transform-style: preserve-3d;
+}
