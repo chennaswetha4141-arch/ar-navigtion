@@ -1,7 +1,3 @@
-import express from 'express';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { createServer as createViteServer } from 'vite';
 import type {
   Building,
   EmergencyLocation,
@@ -11,21 +7,9 @@ import type {
   PathReport,
   RouteResult,
   TurnInstruction,
-} from './src/types/campus.ts';
+} from '../types/campus';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const app = express();
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
-
-app.use(express.json());
-
-// ==========================================
-// 1. In-Memory Graph & Campus Seed Database
-// ==========================================
-
-const INITIAL_BUILDINGS: Building[] = [
+export const LOCAL_BUILDINGS: Building[] = [
   {
     id: 1,
     name: 'Computer Science & Engineering Block',
@@ -116,7 +100,7 @@ const INITIAL_BUILDINGS: Building[] = [
   },
 ];
 
-const INITIAL_NODES: NavigationNode[] = [
+export const LOCAL_NODES: NavigationNode[] = [
   { id: 1, name: 'Main Campus Gate', floor: 0, type: 'gate', x: 120, y: 560, isAccessible: true, description: 'Primary security checkpoint & visitor arrival point' },
   { id: 2, name: 'Security Command Office', buildingId: 7, buildingName: 'Campus Security Headquarters', floor: 0, type: 'emergency', x: 190, y: 530, isAccessible: true, isEmergency: true, emergencyType: 'security', description: 'Emergency dispatch & safety personnel' },
   { id: 3, name: 'South Quad Junction', floor: 0, type: 'junction', x: 290, y: 500, isAccessible: true, description: 'Major pedestrian walkway crossing south campus' },
@@ -148,71 +132,50 @@ const INITIAL_NODES: NavigationNode[] = [
   { id: 29, name: 'East Quad Shaded Bypass Walkway', floor: 0, type: 'junction', x: 520, y: 510, isAccessible: true, description: 'Paved canopy walkway offering alternate detour past central lawn' },
 ];
 
-const INITIAL_PATHS: NavigationPath[] = [
-  // Gate to Security & South Junction
+export const LOCAL_PATHS: NavigationPath[] = [
   { id: 101, sourceNodeId: 1, destinationNodeId: 2, distance: 75, isIndoor: false, isStairs: false, isElevator: false, isAccessible: true, isBlocked: false, floor: 0, bidirectional: true },
   { id: 102, sourceNodeId: 1, destinationNodeId: 3, distance: 180, isIndoor: false, isStairs: false, isElevator: false, isAccessible: true, isBlocked: false, floor: 0, bidirectional: true },
   { id: 103, sourceNodeId: 1, destinationNodeId: 4, distance: 175, isIndoor: false, isStairs: false, isElevator: false, isAccessible: true, isBlocked: false, floor: 0, bidirectional: true },
   { id: 104, sourceNodeId: 2, destinationNodeId: 3, distance: 110, isIndoor: false, isStairs: false, isElevator: false, isAccessible: true, isBlocked: false, floor: 0, bidirectional: true },
-
-  // South Junction to Plaza, Medical, Canteen
   { id: 105, sourceNodeId: 3, destinationNodeId: 5, distance: 140, isIndoor: false, isStairs: false, isElevator: false, isAccessible: true, isBlocked: false, floor: 0, bidirectional: true },
   { id: 106, sourceNodeId: 3, destinationNodeId: 22, distance: 190, isIndoor: false, isStairs: false, isElevator: false, isAccessible: true, isBlocked: false, floor: 0, bidirectional: true },
   { id: 107, sourceNodeId: 4, destinationNodeId: 22, distance: 120, isIndoor: false, isStairs: false, isElevator: false, isAccessible: true, isBlocked: false, floor: 0, bidirectional: true },
   { id: 108, sourceNodeId: 22, destinationNodeId: 20, distance: 110, isIndoor: false, isStairs: false, isElevator: false, isAccessible: true, isBlocked: false, floor: 0, bidirectional: true },
   { id: 109, sourceNodeId: 20, destinationNodeId: 21, distance: 60, isIndoor: true, isStairs: false, isElevator: false, isAccessible: true, isBlocked: false, floor: 0, bidirectional: true },
   { id: 110, sourceNodeId: 20, destinationNodeId: 6, distance: 140, isIndoor: false, isStairs: false, isElevator: false, isAccessible: true, isBlocked: false, floor: 0, bidirectional: true },
-
-  // Central Plaza connections
   { id: 111, sourceNodeId: 5, destinationNodeId: 6, distance: 120, isIndoor: false, isStairs: false, isElevator: false, isAccessible: true, isBlocked: false, floor: 0, bidirectional: true },
-  // PRIMARY DIRECT PATH TO CSE (Key candidate for obstruction demo!)
   { id: 112, sourceNodeId: 5, destinationNodeId: 9, distance: 130, isIndoor: false, isStairs: false, isElevator: false, isAccessible: true, isBlocked: false, floor: 0, bidirectional: true },
-  // East Bypass path for automatic rerouting
   { id: 113, sourceNodeId: 3, destinationNodeId: 29, distance: 240, isIndoor: false, isStairs: false, isElevator: false, isAccessible: true, isBlocked: false, floor: 0, bidirectional: true },
   { id: 114, sourceNodeId: 29, destinationNodeId: 9, distance: 110, isIndoor: false, isStairs: false, isElevator: false, isAccessible: true, isBlocked: false, floor: 0, bidirectional: true },
   { id: 115, sourceNodeId: 5, destinationNodeId: 29, distance: 115, isIndoor: false, isStairs: false, isElevator: false, isAccessible: true, isBlocked: false, floor: 0, bidirectional: true },
   { id: 116, sourceNodeId: 3, destinationNodeId: 28, distance: 190, isIndoor: false, isStairs: false, isElevator: false, isAccessible: true, isBlocked: false, floor: 0, bidirectional: true },
   { id: 117, sourceNodeId: 28, destinationNodeId: 18, distance: 160, isIndoor: false, isStairs: false, isElevator: false, isAccessible: true, isBlocked: false, floor: 0, bidirectional: true },
   { id: 118, sourceNodeId: 9, destinationNodeId: 18, distance: 160, isIndoor: false, isStairs: false, isElevator: false, isAccessible: true, isBlocked: false, floor: 0, bidirectional: true },
-
-  // Library indoor navigation
   { id: 119, sourceNodeId: 6, destinationNodeId: 7, distance: 60, isIndoor: true, isStairs: false, isElevator: false, isAccessible: true, isBlocked: false, floor: 0, bidirectional: true },
   { id: 120, sourceNodeId: 7, destinationNodeId: 8, distance: 70, isIndoor: true, isStairs: false, isElevator: true, isAccessible: true, isBlocked: false, floor: 0, bidirectional: true },
-
-  // CSE Indoor navigation: Atrium, Stairs, Elevator, 1st & 2nd Floors
   { id: 121, sourceNodeId: 9, destinationNodeId: 10, distance: 60, isIndoor: true, isStairs: false, isElevator: false, isAccessible: true, isBlocked: false, floor: 0, bidirectional: true },
   { id: 122, sourceNodeId: 10, destinationNodeId: 11, distance: 55, isIndoor: true, isStairs: false, isElevator: false, isAccessible: true, isBlocked: false, floor: 0, bidirectional: true },
   { id: 123, sourceNodeId: 10, destinationNodeId: 12, distance: 65, isIndoor: true, isStairs: false, isElevator: false, isAccessible: true, isBlocked: false, floor: 0, bidirectional: true },
-  // STAIRS: From 11 to 1st Floor Landing 13 (NOT accessible)
   { id: 124, sourceNodeId: 11, destinationNodeId: 13, distance: 60, isIndoor: true, isStairs: true, isElevator: false, isAccessible: false, isBlocked: false, floor: 0, bidirectional: true },
-  // ELEVATOR: From 12 to 1st Floor Landing 13 (ACCESSIBLE, slight extra wait/travel distance)
   { id: 125, sourceNodeId: 12, destinationNodeId: 13, distance: 85, isIndoor: true, isStairs: false, isElevator: true, isAccessible: true, isBlocked: false, floor: 0, bidirectional: true },
-  // 1st Floor rooms: AI Lab & Computer Lab
   { id: 126, sourceNodeId: 13, destinationNodeId: 14, distance: 95, isIndoor: true, isStairs: false, isElevator: false, isAccessible: true, isBlocked: false, floor: 1, bidirectional: true },
   { id: 127, sourceNodeId: 13, destinationNodeId: 15, distance: 95, isIndoor: true, isStairs: false, isElevator: false, isAccessible: true, isBlocked: false, floor: 1, bidirectional: true },
-  // 2nd floor stairs and elevator
   { id: 128, sourceNodeId: 13, destinationNodeId: 16, distance: 60, isIndoor: true, isStairs: true, isElevator: false, isAccessible: false, isBlocked: false, floor: 1, bidirectional: true },
   { id: 129, sourceNodeId: 12, destinationNodeId: 16, distance: 110, isIndoor: true, isStairs: false, isElevator: true, isAccessible: true, isBlocked: false, floor: 0, bidirectional: true },
   { id: 130, sourceNodeId: 16, destinationNodeId: 17, distance: 90, isIndoor: true, isStairs: false, isElevator: false, isAccessible: true, isBlocked: false, floor: 2, bidirectional: true },
-
-  // ECE indoor
   { id: 131, sourceNodeId: 18, destinationNodeId: 19, distance: 120, isIndoor: true, isStairs: false, isElevator: false, isAccessible: true, isBlocked: false, floor: 0, bidirectional: true },
-
-  // Auditorium: Normal Stairs vs ADA Ramp
   { id: 132, sourceNodeId: 6, destinationNodeId: 23, distance: 150, isIndoor: false, isStairs: true, isElevator: false, isAccessible: false, isBlocked: false, floor: 0, bidirectional: true },
   { id: 133, sourceNodeId: 6, destinationNodeId: 25, distance: 180, isIndoor: false, isStairs: false, isElevator: false, isAccessible: true, isBlocked: false, floor: 0, bidirectional: true },
   { id: 134, sourceNodeId: 5, destinationNodeId: 25, distance: 195, isIndoor: false, isStairs: false, isElevator: false, isAccessible: true, isBlocked: false, floor: 0, bidirectional: true },
   { id: 135, sourceNodeId: 23, destinationNodeId: 24, distance: 75, isIndoor: true, isStairs: false, isElevator: false, isAccessible: false, isBlocked: false, floor: 0, bidirectional: true },
   { id: 136, sourceNodeId: 25, destinationNodeId: 24, distance: 85, isIndoor: true, isStairs: false, isElevator: false, isAccessible: true, isBlocked: false, floor: 0, bidirectional: true },
-
-  // North Quad and Hostel
   { id: 137, sourceNodeId: 20, destinationNodeId: 26, distance: 160, isIndoor: false, isStairs: false, isElevator: false, isAccessible: true, isBlocked: false, floor: 0, bidirectional: true },
   { id: 138, sourceNodeId: 6, destinationNodeId: 26, distance: 210, isIndoor: false, isStairs: false, isElevator: false, isAccessible: true, isBlocked: false, floor: 0, bidirectional: true },
   { id: 139, sourceNodeId: 26, destinationNodeId: 27, distance: 290, isIndoor: false, isStairs: false, isElevator: false, isAccessible: true, isBlocked: false, floor: 0, bidirectional: true },
   { id: 140, sourceNodeId: 24, destinationNodeId: 27, distance: 160, isIndoor: false, isStairs: false, isElevator: false, isAccessible: true, isBlocked: false, floor: 0, bidirectional: true },
 ];
 
-const INITIAL_FACILITIES: Facility[] = [
+export const LOCAL_FACILITIES: Facility[] = [
   {
     id: 1,
     name: 'AI & Machine Learning Research Lab',
@@ -383,7 +346,7 @@ const INITIAL_FACILITIES: Facility[] = [
   },
 ];
 
-const INITIAL_EMERGENCY_LOCATIONS: EmergencyLocation[] = [
+export const LOCAL_EMERGENCY_LOCATIONS: EmergencyLocation[] = [
   {
     id: 1,
     name: 'Medical Room & Triage Station',
@@ -422,7 +385,7 @@ const INITIAL_EMERGENCY_LOCATIONS: EmergencyLocation[] = [
   },
 ];
 
-const INITIAL_REPORTS: PathReport[] = [
+export const LOCAL_REPORTS: PathReport[] = [
   {
     id: 1,
     pathId: 112,
@@ -431,109 +394,169 @@ const INITIAL_REPORTS: PathReport[] = [
     description: 'Paver stones being replaced near the fountain corridor. Pathway temporarily barricaded.',
     status: 'PENDING',
     severity: 'MEDIUM',
-    reportedAt: new Date(Date.now() - 3600000 * 2).toISOString(),
+    reportedAt: new Date().toISOString(),
     reporterName: 'Swetha C. (Student)',
   },
 ];
 
-// Mutable state for the application session
-let buildings = [...INITIAL_BUILDINGS];
-let nodes = [...INITIAL_NODES];
-let paths = JSON.parse(JSON.stringify(INITIAL_PATHS)) as NavigationPath[];
-let facilities = [...INITIAL_FACILITIES];
-let emergencyLocations = [...INITIAL_EMERGENCY_LOCATIONS];
-let pathReports = [...INITIAL_REPORTS];
+// Active client-side session state for offline/static deployment
+let activePaths = JSON.parse(JSON.stringify(LOCAL_PATHS)) as NavigationPath[];
+let activeReports = [...LOCAL_REPORTS];
 
-// ==========================================
-// 2. Dijkstra Shortest-Path & Routing Engine
-// ==========================================
+export function getLocalBuildings() {
+  return [...LOCAL_BUILDINGS];
+}
 
-interface DijkstraEdge {
+export function getLocalNodes() {
+  return [...LOCAL_NODES];
+}
+
+export function getLocalPaths() {
+  return activePaths;
+}
+
+export function getLocalFacilities(query = '') {
+  const q = query.toLowerCase().trim();
+  if (!q) return LOCAL_FACILITIES;
+  return LOCAL_FACILITIES.filter(
+    (f) =>
+      f.name.toLowerCase().includes(q) ||
+      f.department.toLowerCase().includes(q) ||
+      f.buildingName.toLowerCase().includes(q) ||
+      f.code.toLowerCase().includes(q) ||
+      f.category.toLowerCase().includes(q)
+  );
+}
+
+export function getLocalReports() {
+  return activeReports;
+}
+
+export function toggleLocalPathBlock(pathId: number, reason?: string) {
+  const p = activePaths.find((item) => item.id === pathId);
+  if (p) {
+    p.isBlocked = !p.isBlocked;
+    p.blockedReason = p.isBlocked ? reason || 'Maintenance blockage' : undefined;
+    return p;
+  }
+  return null;
+}
+
+export function resetLocalDemo() {
+  activePaths = JSON.parse(JSON.stringify(LOCAL_PATHS));
+  activeReports = [...LOCAL_REPORTS];
+}
+
+export function submitLocalReport(report: {
+  pathId?: number;
+  locationName: string;
+  problemType: string;
+  description: string;
+  severity?: string;
+  reporterName?: string;
+}): PathReport {
+  const newReport: PathReport = {
+    id: activeReports.length + 1,
+    pathId: report.pathId,
+    locationName: report.locationName,
+    problemType: report.problemType as PathReport['problemType'],
+    description: report.description,
+    status: 'PENDING',
+    severity: (report.severity as PathReport['severity']) || 'MEDIUM',
+    reportedAt: new Date().toISOString(),
+    reporterName: report.reporterName || 'Anonymous Student',
+  };
+  activeReports.unshift(newReport);
+  return newReport;
+}
+
+export function approveLocalReport(id: number) {
+  const report = activeReports.find((r) => r.id === id);
+  if (report) {
+    report.status = 'APPROVED';
+    if (report.pathId) {
+      const p = activePaths.find((item) => item.id === report.pathId);
+      if (p) {
+        p.isBlocked = true;
+        p.blockedReason = report.description;
+      }
+    } else {
+      const p112 = activePaths.find((item) => item.id === 112);
+      if (p112) {
+        p112.isBlocked = true;
+        p112.blockedReason = report.description;
+      }
+    }
+  }
+  return report;
+}
+
+export function rejectLocalReport(id: number) {
+  const report = activeReports.find((r) => r.id === id);
+  if (report) {
+    report.status = 'REJECTED';
+  }
+  return report;
+}
+
+// Client-Side Dijkstra Algorithm
+interface ClientEdge {
   targetNodeId: number;
   weight: number;
   path: NavigationPath;
 }
 
-function buildAdjacencyList(accessibleOnly: boolean, ignoreBlocked = false): Map<number, DijkstraEdge[]> {
-  const adj = new Map<number, DijkstraEdge[]>();
-  for (const node of nodes) {
-    adj.set(node.id, []);
-  }
-
-  for (const p of paths) {
-    if (p.isBlocked && !ignoreBlocked) {
-      continue;
-    }
-    if (accessibleOnly && !p.isAccessible) {
-      continue;
-    }
-    if (accessibleOnly && p.isStairs) {
-      continue;
-    }
-
-    const sourceEdges = adj.get(p.sourceNodeId) || [];
-    sourceEdges.push({ targetNodeId: p.destinationNodeId, weight: p.distance, path: p });
-    adj.set(p.sourceNodeId, sourceEdges);
-
-    if (p.bidirectional) {
-      const destEdges = adj.get(p.destinationNodeId) || [];
-      destEdges.push({ targetNodeId: p.sourceNodeId, weight: p.distance, path: p });
-      adj.set(p.destinationNodeId, destEdges);
-    }
-  }
-
-  return adj;
-}
-
-function runDijkstra(
+function runClientDijkstra(
   sourceId: number,
   destId: number,
   accessibleOnly: boolean,
   ignoreBlocked = false
-): {
-  found: boolean;
-  distance: number;
-  nodeIds: number[];
-  pathIds: number[];
-} {
-  const adj = buildAdjacencyList(accessibleOnly, ignoreBlocked);
+) {
+  const adj = new Map<number, ClientEdge[]>();
+  for (const n of LOCAL_NODES) adj.set(n.id, []);
+
+  for (const p of activePaths) {
+    if (p.isBlocked && !ignoreBlocked) continue;
+    if (accessibleOnly && !p.isAccessible) continue;
+    if (accessibleOnly && p.isStairs) continue;
+
+    adj.get(p.sourceNodeId)?.push({ targetNodeId: p.destinationNodeId, weight: p.distance, path: p });
+    if (p.bidirectional) {
+      adj.get(p.destinationNodeId)?.push({ targetNodeId: p.sourceNodeId, weight: p.distance, path: p });
+    }
+  }
+
   const distances = new Map<number, number>();
   const previous = new Map<number, { nodeId: number; pathId: number } | null>();
   const unvisited = new Set<number>();
 
-  for (const node of nodes) {
-    distances.set(node.id, Infinity);
-    previous.set(node.id, null);
-    unvisited.add(node.id);
+  for (const n of LOCAL_NODES) {
+    distances.set(n.id, Infinity);
+    previous.set(n.id, null);
+    unvisited.add(n.id);
   }
 
   distances.set(sourceId, 0);
 
   while (unvisited.size > 0) {
     let current: number | null = null;
-    let smallestDist = Infinity;
+    let smallest = Infinity;
 
-    for (const nodeId of unvisited) {
-      const dist = distances.get(nodeId)!;
-      if (dist < smallestDist) {
-        smallestDist = dist;
-        current = nodeId;
+    for (const id of unvisited) {
+      const d = distances.get(id)!;
+      if (d < smallest) {
+        smallest = d;
+        current = id;
       }
     }
 
-    if (current === null || smallestDist === Infinity) {
-      break;
-    }
-    if (current === destId) {
-      break;
-    }
-
+    if (current === null || smallest === Infinity || current === destId) break;
     unvisited.delete(current);
 
     const neighbors = adj.get(current) || [];
     for (const edge of neighbors) {
       if (!unvisited.has(edge.targetNodeId)) continue;
-      const alt = smallestDist + edge.weight;
+      const alt = smallest + edge.weight;
       if (alt < distances.get(edge.targetNodeId)!) {
         distances.set(edge.targetNodeId, alt);
         previous.set(edge.targetNodeId, { nodeId: current, pathId: edge.path.id });
@@ -551,217 +574,193 @@ function runDijkstra(
 
   while (curr !== null && curr !== sourceId) {
     nodeIds.unshift(curr);
-    const prevEntry = previous.get(curr);
-    if (prevEntry) {
-      pathIds.unshift(prevEntry.pathId);
-      curr = prevEntry.nodeId;
+    const prev = previous.get(curr);
+    if (prev) {
+      pathIds.unshift(prev.pathId);
+      curr = prev.nodeId;
     } else {
       break;
     }
   }
-  if (curr === sourceId) {
-    nodeIds.unshift(sourceId);
-  }
+  if (curr === sourceId) nodeIds.unshift(sourceId);
 
-  return {
-    found: true,
-    distance: distances.get(destId)!,
-    nodeIds,
-    pathIds,
-  };
+  return { found: true, distance: distances.get(destId)!, nodeIds, pathIds };
 }
 
-function generateTurnInstructions(orderedNodes: NavigationNode[], pathIds: number[]): TurnInstruction[] {
-  if (orderedNodes.length <= 1) {
-    const onlyNode = orderedNodes[0];
-    return [
-      {
-        stepNumber: 1,
-        nodeId: onlyNode ? onlyNode.id : 1,
-        nodeName: onlyNode ? onlyNode.name : 'Destination',
-        action: 'arrive',
-        text: onlyNode
-          ? `You are already at your destination: ${onlyNode.name}${onlyNode.floor > 0 ? ` (Floor ${onlyNode.floor})` : ''}.`
-          : 'You are at your destination.',
-        distanceMeters: 0,
-        landmark: onlyNode?.description,
-      },
-    ];
-  }
-
-  const instructions: TurnInstruction[] = [];
-  const pathMap = new Map(paths.map((p) => [p.id, p]));
-
-  for (let i = 0; i < orderedNodes.length; i++) {
-    const currentNode = orderedNodes[i];
-    const isFirst = i === 0;
-    const isLast = i === orderedNodes.length - 1;
-    const stepNumber = i + 1;
-
-    if (isFirst) {
-      const nextNode = orderedNodes[i + 1];
-      const nextDist = pathIds[0] ? (pathMap.get(pathIds[0])?.distance || 80) : 80;
-      instructions.push({
-        stepNumber,
-        nodeId: currentNode.id,
-        nodeName: currentNode.name,
-        action: 'straight',
-        text: `Depart from ${currentNode.name}. Head forward toward ${nextNode?.name || 'next waypoint'}.`,
-        distanceMeters: nextDist,
-        landmark: currentNode.description,
-      });
-      continue;
-    }
-
-    if (isLast) {
-      instructions.push({
-        stepNumber,
-        nodeId: currentNode.id,
-        nodeName: currentNode.name,
-        action: 'arrive',
-        text: `You have arrived at your destination: ${currentNode.name}${currentNode.floor > 0 ? ` (Floor ${currentNode.floor})` : ''}.`,
-        distanceMeters: 0,
-        landmark: currentNode.description,
-      });
-      continue;
-    }
-
-    const prevNode = orderedNodes[i - 1];
-    const nextNode = orderedNodes[i + 1];
-    const segmentPath = pathMap.get(pathIds[i]);
-    const segmentDist = segmentPath?.distance || 75;
-
-    // Floor transitions
-    if (currentNode.type === 'stairs' || segmentPath?.isStairs) {
-      const floorDiff = nextNode.floor - currentNode.floor;
-      instructions.push({
-        stepNumber,
-        nodeId: currentNode.id,
-        nodeName: currentNode.name,
-        action: floorDiff >= 0 ? 'stairs_up' : 'stairs_down',
-        text: `Take the central stairwell ${floorDiff >= 0 ? 'up' : 'down'} to Floor ${nextNode.floor}.`,
-        distanceMeters: segmentDist,
-        floorChange: floorDiff,
-        landmark: 'Stairs located on the east wing of the atrium',
-      });
-      continue;
-    }
-
-    if (currentNode.type === 'elevator' || segmentPath?.isElevator) {
-      const floorDiff = nextNode.floor - currentNode.floor;
-      instructions.push({
-        stepNumber,
-        nodeId: currentNode.id,
-        nodeName: currentNode.name,
-        action: 'elevator',
-        text: `Take the accessible elevator to Floor ${nextNode.floor}.`,
-        distanceMeters: segmentDist,
-        floorChange: floorDiff,
-        landmark: 'Braille keypad & voice announcement elevator',
-      });
-      continue;
-    }
-
-    // Direction calculation using 2D vectors
-    const v1x = currentNode.x - prevNode.x;
-    const v1y = currentNode.y - prevNode.y;
-    const v2x = nextNode.x - currentNode.x;
-    const v2y = nextNode.y - currentNode.y;
-
-    // 2D Cross product for turn orientation
-    const crossProduct = v1x * v2y - v1y * v2x;
-    const dotProduct = v1x * v2x + v1y * v2y;
-    const mag1 = Math.sqrt(v1x * v1x + v1y * v1y);
-    const mag2 = Math.sqrt(v2x * v2x + v2y * v2y);
-    const angleCos = mag1 && mag2 ? dotProduct / (mag1 * mag2) : 1;
-
-    let action: TurnInstruction['action'] = 'straight';
-    let turnPhrase = `Continue straight past ${currentNode.name}`;
-
-    if (angleCos < 0.85) {
-      if (crossProduct > 1500) {
-        action = 'turn_right';
-        turnPhrase = `Turn right at ${currentNode.name}`;
-      } else if (crossProduct < -1500) {
-        action = 'turn_left';
-        turnPhrase = `Turn left at ${currentNode.name}`;
-      } else if (crossProduct > 0) {
-        action = 'slight_right';
-        turnPhrase = `Bear slightly right at ${currentNode.name}`;
-      } else {
-        action = 'slight_left';
-        turnPhrase = `Bear slightly left at ${currentNode.name}`;
-      }
-    }
-
-    instructions.push({
-      stepNumber,
-      nodeId: currentNode.id,
-      nodeName: currentNode.name,
-      action,
-      text: `${turnPhrase} and proceed ${segmentDist}m toward ${nextNode.name}.`,
-      distanceMeters: segmentDist,
-      landmark: currentNode.description,
-    });
-  }
-
-  return instructions;
-}
-
-function calculateRoute(
+export function calculateLocalRoute(
   sourceId: number,
   destId: number,
   accessibleOnly: boolean
-): RouteResult | null {
-  // Check if standard route would have traversed any blocked paths
-  const idealRoute = runDijkstra(sourceId, destId, accessibleOnly, true);
-  const activeRoute = runDijkstra(sourceId, destId, accessibleOnly, false);
+): RouteResult {
+  const ideal = runClientDijkstra(sourceId, destId, accessibleOnly, true);
+  const active = runClientDijkstra(sourceId, destId, accessibleOnly, false);
 
-  if (!activeRoute.found) {
-    return null;
+  if (!active.found) {
+    throw new Error('No walkable route found between these points');
   }
 
-  // Check if obstruction rerouting occurred
   let isRerouted = false;
   let rerouteReason: string | undefined;
 
-  if (idealRoute.found) {
-    const blockedPathsOnIdeal = idealRoute.pathIds.filter((pId) => {
-      const p = paths.find((item) => item.id === pId);
+  if (ideal.found) {
+    const blockedPathsOnIdeal = ideal.pathIds.filter((pId) => {
+      const p = activePaths.find((item) => item.id === pId);
       return p?.isBlocked;
     });
 
     if (blockedPathsOnIdeal.length > 0) {
       isRerouted = true;
-      const blockedObj = paths.find((p) => p.id === blockedPathsOnIdeal[0]);
-      const extraDistance = Math.max(0, Math.round(activeRoute.distance - idealRoute.distance));
-      rerouteReason = `Obstruction avoided: ${blockedObj?.blockedReason || 'Active construction on primary path'}. Automatically rerouted via alternate bypass (+${extraDistance}m).`;
+      const blockedObj = activePaths.find((p) => p.id === blockedPathsOnIdeal[0]);
+      const delta = Math.max(0, Math.round(active.distance - ideal.distance));
+      rerouteReason = `Obstruction avoided: ${blockedObj?.blockedReason || 'Active construction on primary path'}. Automatically rerouted via alternate bypass (+${delta}m).`;
     }
   }
 
-  const nodeMap = new Map(nodes.map((n) => [n.id, n]));
-  const orderedNodes = activeRoute.nodeIds
+  const nodeMap = new Map(LOCAL_NODES.map((n) => [n.id, n]));
+  const orderedNodes = active.nodeIds
     .map((id) => nodeMap.get(id))
     .filter((n): n is NavigationNode => Boolean(n));
 
-  const instructions = generateTurnInstructions(orderedNodes, activeRoute.pathIds);
+  const pathMap = new Map(activePaths.map((p) => [p.id, p]));
+  const instructions: TurnInstruction[] = [];
 
-  // Walking speed approx 75 meters per minute
-  // Multi-floor penalty: 1 minute per floor transition
+  if (orderedNodes.length <= 1) {
+    const only = orderedNodes[0];
+    instructions.push({
+      stepNumber: 1,
+      nodeId: only ? only.id : 1,
+      nodeName: only ? only.name : 'Destination',
+      action: 'arrive',
+      text: only
+        ? `You are already at your destination: ${only.name}${only.floor > 0 ? ` (Floor ${only.floor})` : ''}.`
+        : 'You are at your destination.',
+      distanceMeters: 0,
+      landmark: only?.description,
+    });
+  } else {
+    for (let i = 0; i < orderedNodes.length; i++) {
+      const curr = orderedNodes[i];
+      const stepNumber = i + 1;
+
+      if (i === 0) {
+        const next = orderedNodes[1];
+        const dist = active.pathIds[0] ? (pathMap.get(active.pathIds[0])?.distance || 80) : 80;
+        instructions.push({
+          stepNumber,
+          nodeId: curr.id,
+          nodeName: curr.name,
+          action: 'straight',
+          text: `Depart from ${curr.name}. Head forward toward ${next?.name || 'next waypoint'}.`,
+          distanceMeters: dist,
+          landmark: curr.description,
+        });
+        continue;
+      }
+
+      if (i === orderedNodes.length - 1) {
+        instructions.push({
+          stepNumber,
+          nodeId: curr.id,
+          nodeName: curr.name,
+          action: 'arrive',
+          text: `You have arrived at your destination: ${curr.name}${curr.floor > 0 ? ` (Floor ${curr.floor})` : ''}.`,
+          distanceMeters: 0,
+          landmark: curr.description,
+        });
+        continue;
+      }
+
+      const prev = orderedNodes[i - 1];
+      const next = orderedNodes[i + 1];
+      const segPath = pathMap.get(active.pathIds[i]);
+      const segDist = segPath?.distance || 75;
+
+      if (curr.type === 'stairs' || segPath?.isStairs) {
+        const floorDiff = next.floor - curr.floor;
+        instructions.push({
+          stepNumber,
+          nodeId: curr.id,
+          nodeName: curr.name,
+          action: floorDiff >= 0 ? 'stairs_up' : 'stairs_down',
+          text: `Take the central stairwell ${floorDiff >= 0 ? 'up' : 'down'} to Floor ${next.floor}.`,
+          distanceMeters: segDist,
+          floorChange: floorDiff,
+          landmark: 'Stairs located on the east wing of the atrium',
+        });
+        continue;
+      }
+
+      if (curr.type === 'elevator' || segPath?.isElevator) {
+        const floorDiff = next.floor - curr.floor;
+        instructions.push({
+          stepNumber,
+          nodeId: curr.id,
+          nodeName: curr.name,
+          action: 'elevator',
+          text: `Take the accessible elevator to Floor ${next.floor}.`,
+          distanceMeters: segDist,
+          floorChange: floorDiff,
+          landmark: 'Braille keypad & voice announcement elevator',
+        });
+        continue;
+      }
+
+      const v1x = curr.x - prev.x;
+      const v1y = curr.y - prev.y;
+      const v2x = next.x - curr.x;
+      const v2y = next.y - curr.y;
+
+      const cross = v1x * v2y - v1y * v2x;
+      const dot = v1x * v2x + v1y * v2y;
+      const mag1 = Math.sqrt(v1x * v1x + v1y * v1y);
+      const mag2 = Math.sqrt(v2x * v2x + v2y * v2y);
+      const angleCos = mag1 && mag2 ? dot / (mag1 * mag2) : 1;
+
+      let action: TurnInstruction['action'] = 'straight';
+      let turnPhrase = `Continue straight past ${curr.name}`;
+
+      if (angleCos < 0.85) {
+        if (cross > 1500) {
+          action = 'turn_right';
+          turnPhrase = `Turn right at ${curr.name}`;
+        } else if (cross < -1500) {
+          action = 'turn_left';
+          turnPhrase = `Turn left at ${curr.name}`;
+        } else if (cross > 0) {
+          action = 'slight_right';
+          turnPhrase = `Bear slightly right at ${curr.name}`;
+        } else {
+          action = 'slight_left';
+          turnPhrase = `Bear slightly left at ${curr.name}`;
+        }
+      }
+
+      instructions.push({
+        stepNumber,
+        nodeId: curr.id,
+        nodeName: curr.name,
+        action,
+        text: `${turnPhrase} and proceed ${segDist}m toward ${next.name}.`,
+        distanceMeters: segDist,
+        landmark: curr.description,
+      });
+    }
+  }
+
   let floorTransitions = 0;
   for (let i = 1; i < orderedNodes.length; i++) {
     if (orderedNodes[i].floor !== orderedNodes[i - 1].floor) {
       floorTransitions++;
     }
   }
-  const estimatedTime = Math.max(1, Math.round(activeRoute.distance / 75 + floorTransitions * 1.2));
+  const estimatedTime = Math.max(1, Math.round(active.distance / 75 + floorTransitions * 1.2));
 
   return {
-    distance: activeRoute.distance,
+    distance: active.distance,
     estimatedTime,
     accessibleOnly,
     nodes: orderedNodes,
-    pathIds: activeRoute.pathIds,
+    pathIds: active.pathIds,
     route: orderedNodes.map((n) => n.name),
     instructions,
     isRerouted,
@@ -770,263 +769,35 @@ function calculateRoute(
   };
 }
 
-// ==========================================
-// 3. REST API Endpoints
-// ==========================================
-
-// Buildings
-app.get('/api/buildings', (_req, res) => {
-  res.json(buildings);
-});
-
-app.get('/api/buildings/:id', (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  const building = buildings.find((b) => b.id === id);
-  if (!building) {
-    return res.status(404).json({ error: 'Building not found' });
+export function calculateLocalEmergencyRoute(
+  sourceId: number,
+  emergencyType?: string,
+  accessibleOnly = false
+) {
+  let candidates = LOCAL_EMERGENCY_LOCATIONS;
+  if (emergencyType) {
+    candidates = LOCAL_EMERGENCY_LOCATIONS.filter((l) => l.type === emergencyType);
   }
-  res.json(building);
-});
+  if (candidates.length === 0) candidates = LOCAL_EMERGENCY_LOCATIONS;
 
-// Facilities & Smart Search
-app.get('/api/facilities', (_req, res) => {
-  res.json(facilities);
-});
+  let bestRoute: RouteResult | null = null;
+  let bestLoc: EmergencyLocation | null = null;
 
-app.get('/api/facilities/search', (req, res) => {
-  const query = (req.query.query as string || '').toLowerCase().trim();
-  if (!query) {
-    return res.json(facilities);
-  }
-
-  const results = facilities.filter(
-    (f) =>
-      f.name.toLowerCase().includes(query) ||
-      f.department.toLowerCase().includes(query) ||
-      f.buildingName.toLowerCase().includes(query) ||
-      f.code.toLowerCase().includes(query) ||
-      f.category.toLowerCase().includes(query) ||
-      f.description.toLowerCase().includes(query) ||
-      f.features.some((feat) => feat.toLowerCase().includes(query))
-  );
-
-  res.json(results);
-});
-
-// Navigation Nodes & Paths
-app.get('/api/nodes', (_req, res) => {
-  res.json(nodes);
-});
-
-app.get('/api/paths', (_req, res) => {
-  res.json(paths);
-});
-
-// Route Calculation
-app.post('/api/navigation/route', (req, res) => {
-  const { sourceNodeId, destinationNodeId, accessibleOnly } = req.body;
-
-  if (!sourceNodeId || !destinationNodeId) {
-    return res.status(400).json({ error: 'Missing sourceNodeId or destinationNodeId' });
-  }
-
-  const sourceNode = nodes.find((n) => n.id === Number(sourceNodeId));
-  const destNode = nodes.find((n) => n.id === Number(destinationNodeId));
-
-  if (!sourceNode || !destNode) {
-    return res.status(404).json({ error: 'Source or destination node does not exist in graph' });
-  }
-
-  const result = calculateRoute(Number(sourceNodeId), Number(destinationNodeId), Boolean(accessibleOnly));
-
-  if (!result) {
-    return res.status(404).json({
-      error: 'No walkable route found between points. All connecting paths may be blocked or inaccessible for current settings.',
-    });
-  }
-
-  res.json(result);
-});
-
-// Emergency Routing
-app.post('/api/emergency/route', (req, res) => {
-  const { sourceNodeId, emergencyType, accessibleOnly } = req.body;
-
-  const currentSourceId = Number(sourceNodeId) || 1;
-  const targetType = emergencyType as EmergencyLocation['type'] | undefined;
-
-  let targetCandidates = emergencyLocations;
-  if (targetType) {
-    targetCandidates = emergencyLocations.filter((loc) => loc.type === targetType);
-  }
-
-  if (targetCandidates.length === 0) {
-    targetCandidates = emergencyLocations;
-  }
-
-  // Find nearest emergency destination using Dijkstra
-  let shortestResult: RouteResult | null = null;
-  let targetLocation: EmergencyLocation | null = null;
-
-  for (const loc of targetCandidates) {
-    const route = calculateRoute(currentSourceId, loc.nodeId, Boolean(accessibleOnly));
-    if (route) {
-      if (!shortestResult || route.distance < shortestResult.distance) {
-        shortestResult = route;
-        targetLocation = loc;
+  for (const loc of candidates) {
+    try {
+      const r = calculateLocalRoute(sourceId, loc.nodeId, accessibleOnly);
+      if (!bestRoute || r.distance < bestRoute.distance) {
+        bestRoute = r;
+        bestLoc = loc;
       }
+    } catch {
+      // ignore
     }
   }
 
-  if (!shortestResult || !targetLocation) {
-    return res.status(404).json({ error: 'Unable to calculate emergency route from current position' });
+  if (!bestRoute || !bestLoc) {
+    throw new Error('Could not calculate emergency evacuation route');
   }
 
-  res.json({
-    emergencyLocation: targetLocation,
-    route: shortestResult,
-  });
-});
-
-// User Path Reports
-app.get('/api/path-reports', (_req, res) => {
-  res.json(pathReports);
-});
-
-app.post('/api/path-reports', (req, res) => {
-  const { pathId, locationName, problemType, description, severity, reporterName } = req.body;
-
-  if (!locationName || !problemType || !description) {
-    return res.status(400).json({ error: 'Missing required report fields' });
-  }
-
-  const newReport: PathReport = {
-    id: pathReports.length > 0 ? Math.max(...pathReports.map((r) => r.id)) + 1 : 1,
-    pathId: pathId ? Number(pathId) : undefined,
-    locationName: String(locationName),
-    problemType: problemType || 'construction',
-    description: String(description),
-    status: 'PENDING',
-    severity: severity || 'MEDIUM',
-    reportedAt: new Date().toISOString(),
-    reporterName: reporterName || 'Anonymous Student',
-  };
-
-  pathReports.unshift(newReport);
-  res.status(201).json({
-    message: 'Report submitted successfully. Campus security and facility administrators will review.',
-    report: newReport,
-  });
-});
-
-// Admin: Approve / Reject Reports
-app.put('/api/path-reports/:id/approve', (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  const report = pathReports.find((r) => r.id === id);
-
-  if (!report) {
-    return res.status(404).json({ error: 'Report not found' });
-  }
-
-  report.status = 'APPROVED';
-
-  // If associated with a path or location, block the path
-  if (report.pathId) {
-    const targetPath = paths.find((p) => p.id === report.pathId);
-    if (targetPath) {
-      targetPath.isBlocked = true;
-      targetPath.blockedReason = `${report.problemType.toUpperCase()}: ${report.description}`;
-    }
-  } else if (report.locationName.includes('CSE') || report.locationName.includes('Plaza')) {
-    // Automatically correlate to Central-to-CSE path for demo
-    const p112 = paths.find((p) => p.id === 112);
-    if (p112) {
-      p112.isBlocked = true;
-      p112.blockedReason = report.description;
-    }
-  }
-
-  res.json({ message: 'Report approved and navigation graph updated.', report });
-});
-
-app.put('/api/path-reports/:id/reject', (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  const report = pathReports.find((r) => r.id === id);
-
-  if (!report) {
-    return res.status(404).json({ error: 'Report not found' });
-  }
-
-  report.status = 'REJECTED';
-  res.json({ message: 'Report dismissed.', report });
-});
-
-// Admin: Toggle Path Block directly
-app.post('/api/paths/:id/toggle-block', (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  const pathObj = paths.find((p) => p.id === id);
-
-  if (!pathObj) {
-    return res.status(404).json({ error: 'Path not found' });
-  }
-
-  pathObj.isBlocked = !pathObj.isBlocked;
-  if (pathObj.isBlocked) {
-    pathObj.blockedReason = req.body.reason || 'Manual maintenance restriction set by Administrator';
-  } else {
-    pathObj.blockedReason = undefined;
-  }
-
-  res.json({
-    message: `Path #${id} is now ${pathObj.isBlocked ? 'BLOCKED' : 'OPEN'}`,
-    path: pathObj,
-  });
-});
-
-// Admin Overview
-app.get('/api/admin/overview', (_req, res) => {
-  res.json({
-    totalBuildings: buildings.length,
-    totalNodes: nodes.length,
-    totalPaths: paths.length,
-    blockedPaths: paths.filter((p) => p.isBlocked).length,
-    pendingReports: pathReports.filter((r) => r.status === 'PENDING').length,
-    totalFacilities: facilities.length,
-  });
-});
-
-// Reset Demo Data
-app.post('/api/admin/reset-demo', (_req, res) => {
-  paths = JSON.parse(JSON.stringify(INITIAL_PATHS));
-  pathReports = [...INITIAL_REPORTS];
-  res.json({ message: 'Demo graph and reports reset to initial seeded state' });
-});
-
-// ==========================================
-// 4. Vite Dev Server / Static Hosting
-// ==========================================
-
-async function startServer() {
-  if (process.env.NODE_ENV === 'production') {
-    app.use(express.static(path.resolve(__dirname, 'dist')));
-    app.get('*', (_req, res) => {
-      res.sendFile(path.resolve(__dirname, 'dist', 'index.html'));
-    });
-  } else {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
-  }
-
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[CampusLens Engine] Full-stack navigation server running on http://0.0.0.0:${PORT}`);
-  });
+  return { emergencyLocation: bestLoc, route: bestRoute };
 }
-
-if (process.env.VERCEL !== '1') {
-  startServer();
-}
-
-export default app;

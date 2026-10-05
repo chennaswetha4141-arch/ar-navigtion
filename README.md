@@ -195,7 +195,28 @@ The project comes pre-configured with a unified full-stack server running Expres
 
 ---
 
-### Option B: Spring Boot Backend + MySQL (Production Standalone)
+### Option B: Deploying to Vercel (1-Click Ready)
+The repository is pre-configured with `vercel.json` and a Serverless Function bridge in `api/index.ts`:
+
+1. **Deploy with Vercel CLI:**
+   ```bash
+   npm i -g vercel
+   vercel
+   ```
+2. **Or Deploy via Vercel Web Dashboard (GitHub Import):**
+   - Push your repository to GitHub.
+   - Go to [vercel.com](https://vercel.com) and click **"Add New Project"** -> **"Import Git Repository"**.
+   - **Framework Preset**: Vite (detected automatically).
+   - **Root Directory**: `./` (default).
+   - **Build Command**: `npm run build` (or `vite build`).
+   - **Output Directory**: `dist` (default).
+   - Click **Deploy**.
+
+> **Note**: Even on static-only hosting without serverless execution, CampusLens includes an automatic fallback client-side Dijkstra engine (`src/services/localCampusEngine.ts`), ensuring 100% of routing, AR navigation, and demo features work without any server configuration!
+
+---
+
+### Option C: Spring Boot Backend + MySQL (Production Standalone)
 
 #### 1. Setup MySQL Database
 ```sql
